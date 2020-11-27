@@ -1,12 +1,10 @@
-from tkinter import *
+from tkinter import Tk, Frame, Label, Entry, Button, StringVar
 from tkinter import messagebox
 from PIL import Image, ImageTk
-from time import sleep
-from random import *
+from time import time, sleep
+from random import randint, choice
 from itertools import count, cycle
 
-
-#variables
 font1 = ("Verdana",20,"bold")
 font2 = ("Verdana",10,"bold")
 background1 = "#171717"
@@ -18,293 +16,347 @@ relief2 = "sunken"
 cursor1 = "heart"
 cursor2 = "hand2"
 banner1 = "DEDICADO A MI PERRO SHADOW"
+ICONFILE = "dog.png"
+billetera = 0
 
 class Application(Tk):
-	def __init__(self,*arg,**kwargs):
-		Tk.__init__(self,*arg,**kwargs)
-		container=Frame(self)
-		container.pack(side="top",fill="both",expand=1)
+	
+	def __init__(self, *arg, **kwargs):
+		# global billetera
+		Tk.__init__(self, *arg, **kwargs)
+		container = Frame(self)
+		container.pack(side = "top", fill = "both", expand = 1)
 
-		container.grid_rowconfigure(0,weight=1)
-		container.grid_columnconfigure(0,weight=1)
+		container.grid_rowconfigure(0, weight = 1)
+		container.grid_columnconfigure(0, weight = 1)
 
-		self.frames={}
+		self.frames = {}
+		
 
-		for i in (Lobby,Game,Info,Shop,Craft,Bank,BackPack,Pet_zone):
+		for i in (Lobby, Game, Info, Shop, Craft, Bank, BackPack, Pet_zone):
 
-			frame = i(container,self)
+			frame = i(container, self)
 
 			self.frames[i] = frame
 
-			frame.grid(row=0,column=0,sticky="nsew")
+			frame.grid(row = 0, column = 0, sticky = "nsew")
 
 		self.show_frame(Lobby)
 
-	def show_frame(self,cont):
+	def show_frame(self, cont):
 		frame = self.frames[cont]
 		frame.tkraise()
 
 class Lobby(Frame):
-	def __init__(self,parent,controller):
-		Frame.__init__(self,parent,width="520", height="520", bg=background1,
-			relief=relief2, bd=10)
+	def __init__(self, parent, controller):
+		Frame.__init__(self, parent, width="520", height="520", bg=background1,
+						relief=relief2, bd=10)
 
 		#------------------------------------imagen de fondo-------------------------------------------#
-		ima=Image.open("Shadow.png")	
-		image=ImageTk.PhotoImage(ima)
-		bottom=Label(self,image=image,bg=background1)
-		bottom.image = image
-		bottom.pack()
+		ima = Image.open("Shadow.png")	
+		image = ImageTk.PhotoImage(ima)
+		lblBottom = Label(self, image = image, bg = background1)
+		lblBottom.image = image
+		lblBottom.pack()
 
-		#----------------------------------------título------------------------------------------------#
-		title=Label(self, text="SHADOW'S GAME",
-			font=font1,bg=background1,fg=foreground1)
-		title.place(x=120,y=60)
+		lblTitle = Label(self, text = "SHADOW'S GAME", font = font1, bg = background1, fg = foreground1)
+		lblTitle.place(x = 120, y = 60)
 
-		#--------------------------------------botón jugar---------------------------------------------#
-		button_play=Button(self,text="PLAY",activebackground=foreground1,
-			bg=background1,fg=foreground1,font=font2,command=lambda:controller.show_frame(Game),
-			cursor=cursor1)
-		button_play.place(x=200,y=355)
+		btnPlay=Button(self, text = "PLAY", activebackground = foreground1, width = 5,	bg = background1, 
+							fg = foreground1, font = font2, command = lambda: controller.show_frame(Game), 
+							cursor = cursor1)
+		btnPlay.place(x = 190, y = 355)
 
-		#--------------------------------------botón salir---------------------------------------------#
-		button_quit=Button(self,text="QUIT",activebackground="orange red",
-			bg=background2,fg=background1,font=font2,command=self.quit, cursor=cursor2)
-		button_quit.place(x=250,y=355)
+		btnQuit = Button(self, text = "QUIT", activebackground = "orange red", width = 5, bg = background2, 
+								fg = background1, font = font2, command = self.quit, cursor = cursor2)
+		btnQuit.place(x = 250, y = 355)
 
 class Game(Frame):
-	
-	commands = None
-	text = None
-	content = None
-	cont = 0
+	def __init__(self, parent, controller):
+		Frame.__init__(self, parent, width = "520", height = "520", bg = background1,
+						relief = relief2, bd = 10)
 
-	def __init__(self,parent,controller):
-		Frame.__init__(self,parent,width="520", height="520", bg=background1,
-			relief=relief2, bd=10)
+		#--------------------------------------Obj Variables-------------------------------------------#
+		self.commands_var = StringVar()
+		self.command_var = StringVar()
 
-		#---------------------------------------variables----------------------------------------------#
-		Game.commands = {
-			'dict1':{
-				'$daily':self.__money(500,1000),
-				'$crime':self.__money(100,500),
-				'$fish':self.__money(0,200),
-				'$mine':self.__money(0,200),
-				'$work':self.__money(500,1000),
-				'$slots':self.__money(0,500),
-				'$claim':self.__money(1000,2000)
-				},
-
-			'dict2':{
-				'$buy':'Para comprar, ir a la tienda',
-				'$craft':'Para craftear, ir a la mesa de crafteo',
-				'$withdraw':'Para retirar dinero, ir al banco',
-				'$use':'Para usar un item  ir a la mochila',
-				'$sell':'Para vender, ir a la tienda',
-				'$deposit':'Para depositar, ir al banco'
-				}
-		}
-
-		Game.content = StringVar()
+		self.cmd = False
+		self.contador = 0
 
 		#------------------------------------imagen de fondo-------------------------------------------#
-		ima1=Image.open("Logo2.png")	
-		image1=ImageTk.PhotoImage(ima1)
-		bottom1=Label(self,image=image1,bg=background1)
+		ima1 = Image.open("Logo2.png")	
+		image1 = ImageTk.PhotoImage(ima1)
+		bottom1 = Label(self, image = image1, bg = background1)
 		bottom1.image = image1
 		bottom1.pack()
-
-		#-------------------------------------botón de info--------------------------------------------#
-		button_info=Button(self,text="INFO",activebackground=foreground1,
-			bg=background1,fg=foreground1,font=font2,command=lambda:controller.show_frame(Info))
-		button_info.place(x=408,y=50)
-
+		
 		#------------------------------ventana donde irán los comandos---------------------------------#
-		command_window=Label(self,width=55,height=15,relief=relief2,textvariable=Game.content,
-			bg=background1,fg=foreground1,anchor="nw",justify="left")
-		command_window.place(x=65,y=135)
+		self.lblCommands = Label(self, width = 55, height = 15, relief = relief2, textvariable = self.commands_var,
+									bg = background1, fg = foreground1, anchor = "nw", justify = "left")
+		self.lblCommands.place(x = 65, y = 135)
 
 		#--------------------------ventana donde se escribirán los comandos----------------------------#
-		Game.text=Entry(self,bg=background1,fg=foreground1,font=font2,width=43)
-		Game.text.bind("<Return>",self.__func_save_command)	
-		Game.text.place(x=65,y=380)
-		
-		#--------------------------------boton para ir a la tienda-------------------------------------#
-		button_shop=Button(self,text="SHOP",activebackground=foreground1,
-			bg=background1,fg=foreground1,font=font2,command=lambda:controller.show_frame(Shop))
-		button_shop.place(x=408,y=420)
-
-		#----------------------------boton para ir a la mesa de crafteo--------------------------------#
-		button_craft=Button(self,text="CRAFT",activebackground=foreground1,
-			bg=background1,fg=foreground1,font=font2,command=lambda:controller.show_frame(Craft))
-		button_craft.place(x=348,y=420)
-
-		#---------------------------------boton para ir al banco---------------------------------------#
-		button_bank=Button(self,text="BANK",activebackground=foreground1,
-			bg=background1,fg=foreground1,font=font2,command=lambda:controller.show_frame(Bank))
-		button_bank.place(x=295,y=420)
-
-		#-------------------------------boton para ir al inventario------------------------------------#
-		button_backpack=Button(self,text="BACKPACK",activebackground=foreground1,
-			bg=background1,fg=foreground1,font=font2,command=lambda:controller.show_frame(BackPack))
-		button_backpack.place(x=204,y=420)
-
-		#-----------------------------boton para visitar a tu mazcota----------------------------------#
-		button_pet_zone=Button(self,text="PET ZONE",activebackground=foreground1,
-			bg=background1,fg=foreground1,font=font2,command=lambda:controller.show_frame(Pet_zone))
-		button_pet_zone.place(x=65,y=420)
+		self.entCommand = Entry(self, bg = background1, fg = foreground1, font = font2, width = 43, textvariable = self.command_var)
+		self.entCommand.bind("<Return>", self.save_records)
+		self.entCommand.place(x = 65, y = 380)
 
 		#--------------------------------------Dedicatoria---------------------------------------------#
-		banner=Label(self,text=banner1,width=28,height=1,
-			bg=background1,fg=foreground1,font=font2)
-		banner.place(x=200,y=460)
-	"""
-		..............................................................................................
-		.........................................Métodos..............................................
-		..............................................................................................
-
-	"""	
-	def __money(self,a,b):
-		var=randint(a,b)		
-		return f'Has recibido {var} Shadow Coins'
+		lblBanner = Label(self, text = banner1, width = 28, height = 1, bg = background1, fg = foreground1, font = font2)
+		lblBanner.place(x = 200, y = 460)
 		
+		#-------------------------------------botón de info--------------------------------------------#
+		btnInfo = Button(self, text = "INFO", activebackground = foreground1, bg = background1, fg = foreground1, 
+							font = font2, command = lambda: controller.show_frame(Info))
+		btnInfo.place(x = 408, y = 50)
 
-	def __find_word(self,var,var2):
-		try:
-			return var2[var]
-		except:
-			if var.startswith('$'):
-				try:
-					for i in var2:
-						if type(var2[i]) is dict:
-							try:
-								return var2[i][var]
-							except:
-								for j in var2[i]:
-									if type(var2[i][j]) is dict:
-										try:
-											return var2[i][j][var]
-										except:
-											for k in var2[i][j]:
-												if type(var2[i][j][k]) is dict:
-													return var2[i][j][k][var]
-				except:
-					return var
+		#--------------------------------boton para ir a la tienda-------------------------------------#
+		btnShop = Button(self, text = "SHOP", activebackground = foreground1, bg = background1, fg = foreground1, 
+							font = font2, command = lambda: controller.show_frame(Shop))
+		btnShop.place(x = 408, y = 420)
+
+		#----------------------------boton para ir a la mesa de crafteo--------------------------------#
+		btnCraft = Button(self, text = "CRAFT", activebackground = foreground1, bg = background1, fg = foreground1, 
+							font = font2, command = lambda: controller.show_frame(Craft))
+		btnCraft.place(x = 348, y = 420)
+
+		#---------------------------------boton para ir al banco---------------------------------------#
+		btnBank = Button(self, text = "BANK", activebackground = foreground1, bg = background1, fg = foreground1, 
+							font = font2, command = lambda: controller.show_frame(Bank))
+		btnBank.place(x = 295, y = 420)
+
+		#-------------------------------boton para ir al inventario------------------------------------#
+		btnBackpack = Button(self, text = "BACKPACK", activebackground = foreground1, bg = background1, fg = foreground1, 
+								font = font2, command = lambda: controller.show_frame(BackPack))
+		btnBackpack.place(x = 204, y = 420)
+
+		#-----------------------------boton para visitar a tu mazcota----------------------------------#
+		btnPetZone = Button(self, text = "PET ZONE", activebackground = foreground1, bg = background1, fg = foreground1, 
+								font = font2, command = lambda: controller.show_frame(Pet_zone))
+		btnPetZone.place(x = 65, y = 420)
+
+		self.entCommand.focus()
+
+	def save_records(self, handle):
+		commands = self.commands_var
+		command = self.command_var.get()
+		
+		if command == "$daily":
+
+			global billetera
+			
+			self.cmd = True
+			money = randint(500,1000)
+			self.comando = str(command) + f"\nHas ganado {money}" + " Sc"
+			
+			billetera += money
+			print (str(billetera))
+			
+			self.contador += 2
+
+		elif command == "$crime":
+			self.cmd = True
+
+			probabilidad = ["Robaste un banco", "Te arrestaron"]
+			reaccion = choice(probabilidad)
+
+			if reaccion == probabilidad[0]:
+				self.comando = str(command) + f"\n{reaccion}" + "\nHas ganado " + str(randint(100,500)) + " Sc"				
 			else:
-				return ''
+				self.comando = str(command) + f"\n{reaccion}" + '\nHas sido arrestado y te han descontado ' + str(randint(0, 100)) + " Sc"
 
-	def __show_screen(self,var,var2,var3):
-		if var3 == None:
-			print(var2)
-			var.set(var.get()+var2+'\n')
-		elif var3 == '':
-			print(var2)
-			var.set(var.get()+var2+'\n')
-		elif var3 == var:
-			print(var2)
-			var.set(var.get()+var2+'\n')
+			self.contador += 3
+		elif command == "$fish":
+			self.cmd = True
+			self.commando = str(command) + "\nHas ganado " + str(randint(0,200)) + " Sc"
+			self.contador += 2
+		elif command == "$mine":
+			self.cmd = True
+			self.comando = str(command) + "\nHas ganado " + str(randint(0,200)) + " Sc"
+			self.contador += 2
+		elif command == "$work":
+			self.cmd = True
+			self.comando = str(command) + "\nHas ganado " + str(randint(100,200)) + " Sc"
+			self.contador += 2
+		elif command == "$slots":
+			self.cmd = True
+			self.comando = str(command) + "\nHas ganado " + str(randint(500,1000)) + " Sc"
+			self.contador += 2
+		elif command == "$claim":
+			self.cmd = True
+			self.comando = str(command) + "\nHas ganado " + str(randint(1000,2000)) + " Sc"
+			self.contador += 2
+		elif command == "$buy":
+			self.cmd = True
+			self.commando = str(command) + "\nPara comprar, ir a la tienda"
+			self.contador += 2
+		elif command == "$craft":
+			self.cmd = True
+			self.comando = str(command) + "\nPara craftear, ir a la mesa de crafteo"
+			self.contador += 2
+		elif command == "$withdraw" or command == "$wd":
+			self.cmd = True
+			self.comando = str(command) + "\nPara retirar dinero, ir al banco"
+			self.contador += 2
+		elif command == "$use":
+			self.cmd = True
+			self.comando = str(command) + "\nHas ganado " + str(randint(500,1000)) + " Sc"
+			self.contador += 2
+		elif command == "$sell":
+			self.cmd = True
+			self.comando = str(command) + "\nPara vender, ir a la tienda"
+			self.contador += 2
+		elif command == "$deposit" or command == "$dp":
+			self.cmd = True
+			self.comando = str(command) + "\nPara depositar, ir al banco"
+			self.contador += 2
+		elif command == "":
+			self.cmd = False
+			self.comando = str(command)
 		else:
-			print(var2+'\n'+var3)
-			var.set(var.get()+var2+'\n'+var3+'\n')
+			self.cmd = False
+			self.comando = command
+			self.contador +=1
 
-	def __reset(self):
-		var = 0
-		var2=Game.content.get()
-		letter ='' 
-		if (Game.cont>=16):
-			for i in var2:
-				var+=1
+		if self.cmd == False:
+			print("Sin comandos")
+		else:
+			print(self.comando)
+
+		if not command == '':	
+			commands.set(commands.get() + self.comando + '\n')
+
+		cntLetras = 0
+		letter = '' 
+		cntLineas = 0
+
+		if (self.contador > 15):
+
+			resta = self.contador - 15
+			
+			for i in commands.get():
+				cntLetras +=1
 				if i == '\n':
+					cntLineas += 1
+				if cntLineas == resta:
+					self.contador = 15
 					break
-			for j in range(var,len(var2)):
-				letter+=var2[j]
-			Game.content.set(letter)
+			for j in range(cntLetras,len(commands.get())):
+				letter+=commands.get()[j]
+			commands.set(letter)
 
-	def __func_save_command(self,event):
-		Game.cont+=1
-		command = Game.text.get()
-		find_word = self.__find_word(command,Game.commands)
-		Game.text.delete(0,"end")
-		self.__show_screen(Game.content,command,find_word)
-		self.__reset()
+		self.entCommand.delete(0, 'end')
 
-	"""
-		..............................................................................................
-		..............................................................................................
-		..............................................................................................
-		
-	"""	
-		
 class Info(Frame):
-	def __init__(self,parent,controller):
-		Frame.__init__(self,parent,width="520", height="520", bg=background1,
-			relief=relief2, bd=10)
+	def __init__(self, parent, controller):
+		Frame.__init__(self, parent, width = "520", height = "520", bg = background1,
+			relief = relief2, bd = 10)
 
 		#------------------------------------imagen de fondo-------------------------------------------#
-		ima2=Image.open("Logo2.png")	
-		image2=ImageTk.PhotoImage(ima2)
-		bottom2=Label(self,image=image2,bg=background1)
-		bottom2.image=image2
+		ima2 = Image.open("Logo2.png")	
+		image2 = ImageTk.PhotoImage(ima2)
+		bottom2 = Label(self, image = image2, bg = background1)
+		bottom2.image = image2
 		bottom2.pack()
 
 		#-----------------------------------botón de regreso-------------------------------------------#
-		button_back = Button(self,text="BACK",activebackground="orange red",
-			bg=background2,fg=background1,font=font2,command=lambda:controller.show_frame(Game))
-		button_back.place(x=400,y=50)
+		btnBack = Button(self, text = "BACK", activebackground = "orange red",
+			bg = background2, fg = background1, font = font2, command = lambda: controller.show_frame(Game))
+		btnBack.place(x = 400, y = 50)
 
 class Shop(Frame):
+	def __init__(self, parent, controller):
+		Frame.__init__(self, parent, width = "520", height = "520", bg = background1, relief = relief2, bd = 10)
 
-	item=None
-
-	def __init__(self,parent,controller):
-		Frame.__init__(self,parent,width="520", height="520", bg=background1,
-			relief=relief2, bd=10)
+		#--------------------------------------Obj Variables-------------------------------------------#
+		self.contador = 0
+		self.item_var = StringVar()
+		self.itemComprado_var = StringVar()
+		self.dinero_var = StringVar() 
 
 		#------------------------------------imagen de fondo-------------------------------------------#
-		ima3=Image.open("Logo2.png")	
-		image3=ImageTk.PhotoImage(ima3)
-		bottom3=Label(self,image=image3,bg=background1)
-		bottom3.image = image3
-		bottom3.pack()
-
-		#-----------------------------------botón de regreso-------------------------------------------#
-		button_back=Button(self,text="BACK",activebackground="orange red",
-			bg=background2,fg=background1,font=font2,command=lambda:controller.show_frame(Game))
-		button_back.place(x=400,y=50)
+		ima3 = Image.open("Logo2.png")	
+		image3 = ImageTk.PhotoImage(ima3)
+		lblBottom3 = Label(self, image = image3, bg = background1)
+		lblBottom3.image = image3
+		lblBottom3.pack()
 		
 		#----------------------------------menú de la tienda-------------------------------------------#
-		ima4=Image.open("Tienda1.png")	
-		image4=ImageTk.PhotoImage(ima4)
-		shop=Label(self,image=image4,bg=background1,relief=relief2)
-		shop.image = image4
-		shop.place(x=100,y=100)
+		ima4 = Image.open("Tienda1.png")	
+		image4 = ImageTk.PhotoImage(ima4)
+		lblShop = Label(self, image = image4, bg = background1, relief = relief2)
+		lblShop.image = image4
+		lblShop.place(x = 100, y = 100)
 
-		#-----------------------------------boton siguiente--------------------------------------------#
-		button_next=Button(self,text="NEXT",activebackground=background3,
-			bg=background1,fg=foreground1,font=font2)
-		button_next.place(x=356,y=420)
+		#----------------------------------------compra------------------------------------------------#
+		self.lblCompra = Label(self, font = 'Arial 11 bold', bg = background1, fg = foreground1, textvariable = self.itemComprado_var)
+		self.lblCompra.place(x = 160, y = 421)
 
-		#------------------------------------boton anterior--------------------------------------------#
-		button_previuos=Button(self,text="PREVIOUS",activebackground=background3,
-			bg=background1,fg=foreground1,font=font2)
-		button_previuos.place(x=100,y=420)
+		#-----------------------------------------ids--------------------------------------------------#
+		lblIds = Label(self, text = "IDs: ", font = 'Arial 11 bold', bg = background1, fg = foreground1)
+		lblIds.place(x = 210, y = 461)	
 
-		#-------------------------------------boton comprar--------------------------------------------#
-		button_buy=Button(self,text="BUY",activebackground=background3,
-			bg=background1,fg=foreground1,font=font2,command=lambda:self.__buy)
-		button_buy.place(x=362,y=460)
+		#----------------------------------------compra------------------------------------------------#
+		self.lblDinero = Label(self, font = 'Arial 11 bold', bg = background1, fg = foreground1, textvariable = self.dinero_var)
+		self.lblDinero.place(x = 100, y = 463)	
 
 		#-------------------------ventana donde se escribirán los compras------------------------------#
-		Shop.item=Entry(self,bg=background1,fg=foreground1,font=font2,width=10)	
-		Shop.item.bind("<Return>",self.__buy)
-		Shop.item.place(x=250,y=463)
+		self.entItem = Entry(self, bg = background1, fg = foreground1, font = font2, textvariable = self.item_var, width = 10)
+		self.entItem.place(x = 250, y = 463)
 
-	def __buy(self,event):
-		Shop.item.delete(0,"end")
-		self.label=Label(self,text="+1 item",bg=background1,fg=foreground1,font=font2).place(x=100,y=463)
-		sleep(0.5)
-		self.label.after(1500,self.label.destroy)
+		#-----------------------------------botón de regreso-------------------------------------------#
+		btnBack = Button(self, text = "BACK", activebackground= "orange red", bg = background2, fg = background1, 
+							font = font2, command = lambda: controller.show_frame(Game))
+		btnBack.place(x = 400, y = 50)
 		
+		#-----------------------------------boton siguiente--------------------------------------------#
+		self.btnNext = Button(self, text = "⏵", activebackground = background3, bg = background1, fg = foreground1, 
+								font = font2, command = self.siguiente)
+		self.btnNext.place(x = 375, y = 420)
+
+		#------------------------------------boton anterior--------------------------------------------#
+		self.btnPreviuos = Button(self, text = "⏴", activebackground = background3, bg = background1, fg = foreground1, 
+									font = font2, command = self.anterior)
+		self.btnPreviuos.place(x = 100, y = 420)
+
+		#-------------------------------------boton comprar--------------------------------------------#
+		self.btnBuy = Button(self, text = "BUY", activebackground = background3, bg = background1, fg = foreground1, 
+								font = font2, command = self.comprar)
+		self.btnBuy.place(x = 362, y = 460)
+
+		self.itemComprado_var.set("Has comprado el ID: ")
+		self.dinero()
+	
+	def dinero(self):
+		dinero = self.dinero_var
+		print(str(billetera))
+		dinero.set(str(billetera))
+
+
+	def comprar(self):
+		item = self.item_var
+		itemComprado = self.itemComprado_var
+
+		itemComprado.set("Has comprado el ID: " + item.get())
+		print(str(billetera))
+		self.entItem.delete(0, 'end')
+
+	def siguiente(self):
+		ima4 = Image.open("Tienda2.png")	
+		image4 = ImageTk.PhotoImage(ima4)
+		lblShop = Label(self, image = image4, bg = background1, relief = relief2)
+		lblShop.image = image4
+		lblShop.place(x = 100, y = 100)
+		self.contador += 1
+	
+	def anterior(self):
+		ima4 = Image.open("Tienda1.png")	
+		image4 = ImageTk.PhotoImage(ima4)
+		lblShop = Label(self, image = image4, bg = background1, relief = relief2)
+		lblShop.image = image4
+		lblShop.place(x = 100, y = 100)
+		self.contador += 1
+		pass
+
 class Craft(Frame):
 	def __init__(self,parent,controller):
 		Frame.__init__(self,parent,width="520", height="520", bg=background1,
@@ -429,9 +481,7 @@ class Secret_Win(Frame):
 		@window.event
 		def on_draw():
 		    window.clear()
-		    animSprite.draw()
-		 
-		 
+		    animSprite.draw()		 		 
 		 
 		pyglet.app.run()
 #el objeto de abajo la descargue de internet y no sé cómo funciona pero funciona, así que no lo toques
@@ -452,6 +502,7 @@ class ImageLabel(Label):
                 im.seek(i)
         except EOFError:
             pass
+
         self.frames = cycle(frames)
 
         try:
@@ -474,10 +525,12 @@ class ImageLabel(Label):
             self.after(self.delay, self.next_frame) #lo copie por internet, asi que no sé cómo funciona pero funciona
 
 def main():
-	app=Application()
+	app = Application()
 	app.title("Shadow's Game")
+	app.iconbitmap(ICONFILE)
 	app.resizable(0,0)
-	app.bind("<Escape>",lambda x:app.destroy())
+	app.bind("<Escape>", lambda x: app.destroy())
 	app.mainloop()
 
-main()
+if __name__ == '__main__':
+	main()
